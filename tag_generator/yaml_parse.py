@@ -8,10 +8,10 @@ from package_info import PackageInfo
 from xml.etree import ElementTree as ET
 import yaml
 
-#
+# Open the manifest yaml fike
 stream = open('manifest.yaml', 'r')
 
-#
+# Extract the manifest from the yaml file
 manifest = yaml.load(stream)['manifest']
     
 # Initialize the XML string to be used in swid tag
@@ -33,6 +33,14 @@ software_identity = create_software_identity_element(
         "full": False
     })
 
+# If a publisher is listed in the manifest file, add it to the tag
+if 'publisher' in manifest:
+    entity = ET.SubElement(software_identity, 'Entity')
+    entity.set('name', manifest['publisher'])
+    entity.set('regid', manifest['publisher'] + '.org')
+    entity.set('role', 'softwareCreator')
+
 # Generate utf8-encoded xml bytestring and print
 swidtag = ET.tostring(software_identity, encoding='utf-8').replace(b'\n', b'')
+print(type(software_identity))
 print(XML_DECLARATION.encode('utf-8') + swidtag)
