@@ -1,0 +1,32 @@
+The installer manifest used to build installer packages is a YAML document that
+stores metadata related to the software to be installed in order to support the
+generation of SWID tags and the installation of software on a target machine.
+
+As a JSON document is also a valid YAML document, these manifests may also be in
+the JSON format. This is useful for easier generation of the manifest by the
+backend of the system
+
+A simple example manifest file is shown below:
+---
+manifest:
+  software: Hello Washington
+  version: 1.0.0
+  architecture: x86-64
+  language: en-US
+  publisher: BloSS@M
+  os:
+    type: linux
+    distro: ubuntu
+    version: 20.04
+  needsKey: true
+  assets:
+    - helloWashington: /usr/local/bin
+  keyInstall: /etc/hellowashington/license.key
+---
+
+The root of the YAML document is a map named manifest. There are various fields
+that are required in this map. The software's title is given by the key
+"software", its version number is given by the key "version", and so on.
+The "software", "version", "architecture", "language", and "architecture" keys
+are required for generating SWID tags. The "needsKey", "assets", and
+"keyInstall" keys are required for the installer.
