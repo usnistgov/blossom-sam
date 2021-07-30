@@ -1,0 +1,14 @@
+manifest:
+  software: Hello Washington
+  version: 1.0.0
+  architecture: x86-64
+  language: en-US
+  publisher: BloSS@M
+  os:
+    type: linux
+    distro: ubuntu
+    version: 20.04
+  needsKey: true
+  assets:
+    - helloWashington: /usr/local/bin
+  keyInstall: /etc/hellowashington/license.key
