@@ -4,7 +4,7 @@ from flask import (
     jsonify,
     redirect,
     request,
-    response,
+    Response,
     send_file
 )
 
@@ -21,8 +21,17 @@ DB_FILE = '/opt/blossom-sam/sam.db'
 def endpoint_root():
     return Response('BLoSS@M SAM Service Running...', mimetype='text/plain')
 
+@app.route('/installer')
+def endpoint_getInstaller():
+    p = Path(INSTALLER_BASE) / 'installer.zip'
+    if not p.exists():
+        return Response('', mimetype='text/plain'), 503
+
+    return send_file(p, mimetype='application/zip', as_attachment=True,
+                     etag=True)
+
 # TODO: Implement authentication of clients connecting to below endpoints
-@app.route('/installer/<os:string>/<arch:string>/<app:string>/<ver:string>')
+@app.route('/installer/<string:os>/<string:arch>/<string:app>/<string:ver>')
 def endpoint_inst(os, arch, app, ver):
     # See if we have a directory for this particular request
     p = Path(INSTALLER_BASE)
@@ -33,3 +42,8 @@ def endpoint_inst(os, arch, app, ver):
     # Send the installer out
     return send_file(p2, mimetype='application/zip', as_attachment=True,
                      download_name=app + '-' + ver + '.pkg', etag=True)
+
+
+# If the script is being run directly, set up our server.
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8080, debug=True, use_evalex=False)
