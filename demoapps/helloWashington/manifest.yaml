@@ -10,5 +10,8 @@ manifest:
     version: 20.04
   needsKey: true
   assets:
-    - helloWashington: /usr/local/bin
+  - filename: helloWashington
+    dest: /usr/local/bin
+    owner: root:root
+    permissions: 0755
   keyInstall: /etc/hellowashington/license.key
