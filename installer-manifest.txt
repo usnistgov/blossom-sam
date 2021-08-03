@@ -20,7 +20,10 @@ manifest:
     version: 20.04
   needsKey: true
   assets:
-    - helloWashington: /usr/local/bin
+  - filename: helloWashington
+    dest: /usr/local/bin
+    owner: root:root
+    permissions: 0755
   keyInstall: /etc/hellowashington/license.key
 ---
 
@@ -30,3 +33,13 @@ that are required in this map. The software's title is given by the key
 The "software", "version", "architecture", "language", and "architecture" keys
 are required for generating SWID tags. The "needsKey", "assets", and
 "keyInstall" keys are required for the installer.
+
+Each element in the "assets" array *must* have at least the following fields:
+- filename: the name of the file in the installer package
+- dest: the directory to install the file in
+- owner: the user/group that should be marked as the owner of the file
+- permissions: the POSIX permission bits for the file
+Optionally the following fields may be present:
+- destFilename: the name that the file should be installed as in the destination
+  directory. If blank, the file should have the same filename as it does in the
+  installer package.
