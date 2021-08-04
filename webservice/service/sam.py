@@ -30,9 +30,21 @@ def endpoint_getInstaller():
     return send_file(p, mimetype='application/zip', as_attachment=True,
                      etag=True)
 
-# TODO: Implement authentication of clients connecting to below endpoints
 @app.route('/installer/<string:os>/<string:arch>/<string:app>/<string:ver>')
 def endpoint_inst(os, arch, app, ver):
+    auth = request.headers.get('Authorization')
+    if not auth:
+        return Response('', mimetype='text/plain'), 401
+
+    spauth = auth.split()
+    if len(spauth) != 2:
+        return Response('', mimetype='text/plain'), 400
+
+    if spauth[0] != 'Bearer':
+        return Response('', mimetype='text/plain'), 401
+
+    # TODO: Look up key in db and find the machine it belongs to.
+
     # See if we have a directory for this particular request
     p = Path(INSTALLER_BASE)
     p2 = p / os / arch / app / ver / 'sam.pkg'
@@ -43,7 +55,35 @@ def endpoint_inst(os, arch, app, ver):
     return send_file(p2, mimetype='application/zip', as_attachment=True,
                      download_name=app + '-' + ver + '.pkg', etag=True)
 
+@app.route('/key/<string:os>/<string:arch>/<string:app>/<string:ver>')
+def endpoint_key(os, arch, app, ver):
+    auth = request.headers.get('Authorization')
+    if not auth:
+        return Response('', mimetype='text/plain'), 401
 
-# If the script is being run directly, set up our server.
+    spauth = auth.split()
+    if len(spauth) != 2:
+        return Response('', mimetype='text/plain'), 400
+
+    if spauth[0] != 'Bearer':
+        return Response('', mimetype='text/plain'), 401
+
+    # TODO: Look up key in db and find the machine it belongs to.
+
+    # See if we have a key for this particular request
+    # TODO: grab keys from db.
+    p = Path(INSTALLER_BASE)
+    p2 = p / os / arch / app / ver / 'key.bin'
+    if not p2.exists():
+        return Response('', mimetype='text/plain'), 404
+
+    # Send the key out
+    return send_file(p2, mimetype='application/octet-stream',
+                     as_attachment=True, download_name=app + '-' + ver + '.key',
+                     etag=True)
+
+################################################################################
+# If the script is being run directly, set up our server.                      #
+################################################################################
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080, debug=True, use_evalex=False)
