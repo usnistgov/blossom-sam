@@ -94,17 +94,24 @@ def endpoint_key(os, arch, app, ver):
     if not a:
         return Response('', mimetype='text/plain'), 404
 
-    # See if we have a key for this particular request
-    # TODO: grab keys from db.
-    p = Path(INSTALLER_BASE)
-    p2 = p / os / arch / app / ver / 'key.bin'
-    if not p2.exists():
-        return Response('', mimetype='text/plain'), 404
+    leased = False
+    for k in a.keys:
+        if k.leased_to is None:
+            try:
+                k.system = sys
+                db.session.commit()
+                leased = True
+                break
+            except:
+                pass
+
+    if not leased:
+        return Response('', mimetype='text/plain'), 402
 
     # Send the key out
-    return send_file(p2, mimetype='application/octet-stream',
-                     as_attachment=True, download_name=app + '-' + ver + '.key',
-                     etag=True)
+    return Response(k.data, mimetype='application/octet-stream',
+                    as_attachment=True,
+                    download_name=app + '-' + ver + 'key'), 200
 
 ################################################################################
 # If the script is being run directly, set up our server.                      #
