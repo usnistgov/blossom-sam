@@ -1,3 +1,13 @@
+Add new admin user and system token by doing the following:
+python3
+import service.sam
+service.sam.add_admin('admin', 'admin')
+service.sam.add_system('testSystem', 'testToken')
+quit()
+
+Both of the above service lines should return True on success.
+If you change the credentials above, adjust them in all commands below.
+
 Run the service from this directory with the command:
 python3 service/sam.py
 
