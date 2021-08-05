@@ -100,8 +100,7 @@ def endpoint_inst(os, arch, name, ver):
         return Response('Installer not found!\n', mimetype='text/plain'), 404
 
     # Send the installer out
-    return send_file(p2, mimetype='application/zip', as_attachment=True,
-                     download_name=name + '-' + ver + '.pkg', etag=True)
+    return send_file(str(p2), mimetype='application/zip', as_attachment=True)
 
 @app.route('/key/<string:os>/<string:arch>/<string:name>/<string:ver>')
 def endpoint_key(os, arch, name, ver):

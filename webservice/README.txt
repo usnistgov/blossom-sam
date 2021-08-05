@@ -12,7 +12,9 @@ Run the service from this directory with the command:
 python3 service/sam.py
 
 Run the commands below in another terminal on the same system:
-Add new software:
+Add new software (make sure to copy zip file to the
+/opt/blossom-sam/installers/ubuntu/x86_64/helloWashington/1.0.0 directory as
+sam.pkg):
 curl -u admin:admin --request POST --header "Content-Type: application/json" --data '{"name": "helloWashington", "version": "1.0.0", "arch": "x86_64", "os": "ubuntu" }' http://localhost:8080/admin/addSoftware
 
 Add key:
