@@ -12,6 +12,22 @@ class System(db.Model):
                            backref=db.backref('system', lazy=True),
                            cascade='all, delete')
 
+class Admin(db.Model):
+    admin_id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String, nullable=False, unique=True)
+    passwd = db.Column(db.String, nullable=False)
+
+    tokens = db.relationship('AdminToken', lazy=True,
+                             backref=db.backref('admin', lazy=True),
+                             cascade='all, delete')
+
+class AdminToken(db.Model):
+    admin_id = db.Column(db.Integer, db.ForeignKey('admin.admin_id'),
+                         nullable=False, primary_key=True)
+    issued = db.Column(db.Time(timezone=True), server_default=db.func.now(),
+                       nullable=False)
+    token = db.Column(db.String, nullable=False)
+
 class Application(db.Model):
     __table_args__ = (
         db.UniqueConstraint('name', 'version', 'arch', 'os'),
@@ -23,8 +39,8 @@ class Application(db.Model):
     arch = db.Column(db.String, nullable=False)
     os = db.Column(db.String, nullable=False)
 
-    keys = db.relationship('Key', lazy=True,
-                           backref=db.backref('application', lazy=True),
+    keys = db.relationship('Key', lazy='selectin',
+                           backref=db.backref('application', lazy='selectin'),
                            cascade='all, delete')
 
 class Key(db.Model):
