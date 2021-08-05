@@ -74,19 +74,19 @@ def endpoint_getInstaller():
 def endpoint_inst(os, arch, name, ver):
     auth = request.headers.get('Authorization')
     if not auth:
-        return Response('', mimetype='text/plain'), 401
+        return Response('Unauthorized\n', mimetype='text/plain'), 401
 
     spauth = auth.split()
     if len(spauth) != 2:
-        return Response('', mimetype='text/plain'), 400
+        return Response('Unauthorized\n', mimetype='text/plain'), 400
 
     if spauth[0] != 'Bearer':
-        return Response('', mimetype='text/plain'), 401
+        return Response('Unauthorized\n', mimetype='text/plain'), 401
 
     # Look up token in db and find the machine it belongs to.
     sys = System.query.filter_by(token=spauth[1]).all()
     if not sys or len(sys) != 1:
-        return Response('', mimetype='text/plain'), 401
+        return Response('Unauthorized\n', mimetype='text/plain'), 401
 
     # Make sure we know about this application
     a = Application.query.filter_by(os=os, arch=arch, name=name, version=ver).all()
@@ -106,24 +106,24 @@ def endpoint_inst(os, arch, name, ver):
 def endpoint_key(os, arch, name, ver):
     auth = request.headers.get('Authorization')
     if not auth:
-        return Response('', mimetype='text/plain'), 401
+        return Response('Unauthorized\n', mimetype='text/plain'), 401
 
     spauth = auth.split()
     if len(spauth) != 2:
-        return Response('', mimetype='text/plain'), 400
+        return Response('Unauthorized\n', mimetype='text/plain'), 400
 
     if spauth[0] != 'Bearer':
-        return Response('', mimetype='text/plain'), 401
+        return Response('Unauthorized\n', mimetype='text/plain'), 401
 
     # Look up token in db and find the machine it belongs to.
     sys = System.query.filter_by(token=spauth[1]).all()
     if not sys or len(sys) != 1:
-        return Response('', mimetype='text/plain'), 401
+        return Response('Unauthorized\n', mimetype='text/plain'), 401
 
     # Make sure we know about this application
     a = Application.query.filter_by(os=os, arch=arch, name=name, version=ver).all()
     if not a or len(a) != 1:
-        return Response('', mimetype='text/plain'), 404
+        return Response('Application not found!\n', mimetype='text/plain'), 404
 
     leased = False
     for k in a[0].keys:
@@ -137,7 +137,7 @@ def endpoint_key(os, arch, name, ver):
                 pass
 
     if not leased:
-        return Response('', mimetype='text/plain'), 402
+        return Response('No keys available!\n', mimetype='text/plain'), 402
 
     # Send the key out
     resp = Response(k.data, mimetype='application/octet-stream')
