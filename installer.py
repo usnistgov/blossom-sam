@@ -6,6 +6,7 @@ import yaml
 import pwd
 import grp
 import os
+import request
 
 # Function for installing software from zip file
 def install(fileName):
@@ -17,8 +18,9 @@ def install(fileName):
     stream = open("manifest.yaml", 'r')
 
     # Extract the manifest from the yaml file
-    assets = yaml.load(stream)['manifest']['assets']
-
+    manifest = yaml.load(stream)['manifest']
+    assets = manifest['assets']
+    
     print(assets)
     
     # Install all assets
@@ -55,3 +57,26 @@ def install(fileName):
         os.chmod(path, asset['permissions'])
 
     
+# Function for installing a key
+def install_key(manifest, baseURL, token):
+
+    # Call web service to get key
+
+    # Define headers
+    headers = {
+        'Authorization': 'Bearer ' + token,
+    }
+
+    # This needs to be adjusted
+    # Get the key
+    response = requests.get(
+        baseURL + '/key/' + manifest['os']['distro'] \
+        + '/' + manifest['architecture'] + '/' + manifest['software'] \
+        + '/' + manifest['version'],
+        headers=headers)
+    
+    # install key 
+
+    # Move the key
+    with open(manifest['keyInstall'], "wb") as f:
+            f.write(response.content)
