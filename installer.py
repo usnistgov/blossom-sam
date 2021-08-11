@@ -58,7 +58,7 @@ def install(fileName):
 
     
 # Function for installing a key
-def install_key(manifest, baseURL, token):
+def install_key(distro, architecture, software, version, dest, baseURL, token):
 
     # Call web service to get key
 
@@ -70,13 +70,34 @@ def install_key(manifest, baseURL, token):
     # This needs to be adjusted
     # Get the key
     response = requests.get(
-        baseURL + '/key/' + manifest['os']['distro'] \
-        + '/' + manifest['architecture'] + '/' + manifest['software'] \
-        + '/' + manifest['version'],
+        baseURL + '/key/' + distro \
+        + '/' + architecture + '/' + software \
+        + '/' + version,
         headers=headers)
     
     # install key 
 
     # Move the key
-    with open(manifest['keyInstall'], "wb") as f:
+    with open(dest, "wb") as f:
+            f.write(response.content)
+
+# Function for downloading software
+def download_software(distro, architecture, software, version, baseURL, token):
+
+    # Call web service to download software
+
+    # Define headers
+    headers = {
+        'Authorization': 'Bearer ' + token,
+    }
+
+    # Get the software
+    response = requests.get(
+        baseURL + '/installer/' + distro \
+        + '/' + architecture + '/' + software \
+        + '/' + version,
+        headers=headers)
+
+    # Save the software to a file
+    with open(software + '.zip', "wb") as f:
             f.write(response.content)
