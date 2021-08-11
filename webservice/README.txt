@@ -19,7 +19,7 @@ sam.pkg):
 curl -u admin:admin --request POST --header "Content-Type: application/json" --data '{"name": "helloWashington", "version": "1.0.0", "arch": "x86_64", "os": "ubuntu" }' http://localhost:8080/admin/addSoftware
 
 Add key:
-base64 path/to/keyfile
+cat path/to/keyfile | python3 -c 'import sys, base64; data=sys.stdin.read().encode("utf8"); print(str(base64.urlsafe_b64encode(data), "ascii"))'
 # fill in output from previous commmand in the key below, or just use the one I have here:
 curl -u admin:admin --request POST --header "Content-Type: application/json" --data '{"key": "sxYgpkt/Qyv7v3nCEOj4nQ==" }' http://localhost:8080/admin/addKey/ubuntu/x86_64/helloWashington/1.0.0
 
