@@ -34,5 +34,5 @@ base64 inst.key
 # output should match the key above in the addkey call
 
 Register a SWID tag with the service (assuming the tag is in a file called "swid_tag"):
-base64 swid_tag
+cat swid_tag | python3 -c 'import sys, base64; data=sys.stdin.read().encode("utf8"); print(str(base64.urlsafe_b64encode(data), "ascii"))'
 curl -X POST -F 'SWID_TAG=VALUE FROM PREVIOUS COMMAND GOES HERE' --header "Authorization: Bearer testToken" http://localhost:8080/swid/ubuntu/x86_64/helloWashington/1.0.0
