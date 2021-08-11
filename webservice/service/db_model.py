@@ -11,6 +11,9 @@ class System(db.Model):
     keys = db.relationship('Key', lazy=True,
                            backref=db.backref('system', lazy=True),
                            cascade='all, delete')
+    swid_tags = db.relationship('SwidTag', lazy=True,
+                                backref=db.backref('system', lazy=True),
+                                cascade='all, delete')
 
 class Admin(db.Model):
     admin_id = db.Column(db.Integer, primary_key=True)
@@ -42,6 +45,10 @@ class Application(db.Model):
     keys = db.relationship('Key', lazy='selectin',
                            backref=db.backref('application', lazy='selectin'),
                            cascade='all, delete')
+    swid_tags = db.relationship('SwidTag', lazy=True,
+                                backref=db.backref('application',
+                                                   lazy='selectin'),
+                                cascade='all, delete')
 
 class Key(db.Model):
     key_id = db.Column(db.Integer, primary_key=True)
@@ -50,3 +57,11 @@ class Key(db.Model):
     data = db.Column(db.Binary, nullable=False)
     leased_to = db.Column(db.Integer, db.ForeignKey('system.system_id'),
                           nullable=True)
+
+class SwidTag(db.Model):
+    tag_id = db.Column(db.Integer, primary_key=True)
+    app_id = db.Column(db.Integer, db.ForeignKey('application.app_id'),
+                       nullable=False)
+    system_id = db.Column(db.Integer, db.ForeignKey('system.system_id'),
+                          nullable=False)
+    swid_tag = db.Column(db.String, nullable=False)

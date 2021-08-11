@@ -12,6 +12,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from pathlib import Path
 import base64
+import traceback
 
 app = Flask(__name__)
 
@@ -78,7 +79,7 @@ def endpoint_inst(os, arch, name, ver):
 
     spauth = auth.split()
     if len(spauth) != 2:
-        return Response('Unauthorized\n', mimetype='text/plain'), 400
+        return Response('Unauthorized\n', mimetype='text/plain'), 401
 
     if spauth[0] != 'Bearer':
         return Response('Unauthorized\n', mimetype='text/plain'), 401
@@ -110,7 +111,7 @@ def endpoint_key(os, arch, name, ver):
 
     spauth = auth.split()
     if len(spauth) != 2:
-        return Response('Unauthorized\n', mimetype='text/plain'), 400
+        return Response('Unauthorized\n', mimetype='text/plain'), 401
 
     if spauth[0] != 'Bearer':
         return Response('Unauthorized\n', mimetype='text/plain'), 401
@@ -144,6 +145,46 @@ def endpoint_key(os, arch, name, ver):
     resp.headers.set('Content-Disposition', 'attachment; filename=' +
                      name + '-' + ver + '.key')
     return resp, 200
+
+@app.route('/swid/<string:os>/<string:arch>/<string:name>/<string:ver>', methods=['POST'])
+def endpoint_swid(os, arch, name, ver):
+    auth = request.headers.get('Authorization')
+    if not auth:
+        return Response('Unauthorized\n', mimetype='text/plain'), 401
+
+    spauth = auth.split()
+    if len(spauth) != 2:
+        return Response('Unauthorized\n', mimetype='text/plain'), 401
+
+    if spauth[0] != 'Bearer':
+        return Response('Unauthorized\n', mimetype='text/plain'), 401
+
+    # Look up token in db and find the machine it belongs to.
+    sys = System.query.filter_by(token=spauth[1]).all()
+    if not sys or len(sys) != 1:
+        return Response('Unauthorized\n', mimetype='text/plain'), 401
+
+    # Grab the tag and decode it
+    swid_tag = request.form.get('SWID_TAG')
+    if not swid_tag:
+        return Response('Bad Request\n', mimetype='text/plain'), 400
+
+    swid_tag_decoded = base64.urlsafe_b64decode(swid_tag)
+
+    # Make sure we know about this application
+    a = Application.query.filter_by(os=os, arch=arch, name=name, version=ver).all()
+    if not a or len(a) != 1:
+        return Response('Application not found!\n', mimetype='text/plain'), 404
+
+    # Add the new tag to the db.
+    try:
+        newtag = SwidTag(application=a[0], system=sys[0], swid_tag=swid_tag)
+        db.session.add(newtag)
+        db.session.commit()
+    except:
+        return Response('System Error\n', mimetype='text/plain'), 500
+
+    return Response('Tag Added\n', mimetype='text/plain'), 201
 
 @app.route('/admin/addSoftware', methods=['POST'])
 def endpoint_addSoftware():

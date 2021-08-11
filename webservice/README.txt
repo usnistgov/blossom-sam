@@ -1,6 +1,7 @@
 Add new admin user and system token by doing the following:
 python3
 import service.sam
+service.sam.db.create_all()
 service.sam.add_admin('admin', 'admin')
 service.sam.add_system('testSystem', 'testToken')
 quit()
@@ -31,3 +32,7 @@ curl -o inst.key --header "Authorization: Bearer testToken" http://localhost:808
 Demonstrate key is what you fed in:
 base64 inst.key
 # output should match the key above in the addkey call
+
+Register a SWID tag with the service (assuming the tag is in a file called "swid_tag"):
+base64 swid_tag
+curl -X POST -F 'SWID_TAG=VALUE FROM PREVIOUS COMMAND GOES HERE' --header "Authorization: Bearer testToken" http://localhost:8080/swid/ubuntu/x86_64/helloWashington/1.0.0
