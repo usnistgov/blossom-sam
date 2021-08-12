@@ -2,6 +2,7 @@
 
 # importing required modules
 from zipfile import ZipFile
+import tempfile
 import sys
 
 # Function for unzipping
@@ -13,6 +14,6 @@ def unzip(fileName):
         zip.printdir()
         
         # extracting all the files
-        # print('Extracting all the files now...')
-        zip.extractall()
+        with tempfile.TemporaryDirectory() as tempdir:
+                zip.extractall(tempdir)
         #print('Done!')
