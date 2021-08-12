@@ -86,7 +86,7 @@ def install_key(distro, architecture, software, version, dest, baseURL, token):
 
     # Move the key
     with open(dest, "wb") as f:
-            f.write(response.content)
+        f.write(response.content)
 
 # Function for downloading software
 def download_software(distro, architecture, software, version, baseURL, token):
@@ -107,4 +107,26 @@ def download_software(distro, architecture, software, version, baseURL, token):
 
     # Save the software to a file
     with open(software + '.zip', "wb") as f:
-            f.write(response.content)
+        f.write(response.content)
+
+# Function for submitting swid tags
+def submit_tag(distro, architecture, software, version, baseURL, token, swid_tag):
+
+    headers = {
+        'Authorization': 'Bearer ' + token,
+    }
+
+    files = {
+        'SWID_TAG': (None, swid_tag),
+    }
+
+    # Get the software
+    response = requests.get(
+        baseURL + '/swid/' + distro \
+        + '/' + architecture + '/' + software \
+        + '/' + version,
+        headers=headers, files = files)
+
+    # Save the software to a file
+    with open(software + '.zip', "wb") as f:
+        f.write(response.content)
