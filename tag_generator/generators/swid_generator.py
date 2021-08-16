@@ -3,10 +3,10 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
 
 from xml.etree import ElementTree as ET
-from signature_template import SIGNATURE
-from package_info import PackageInfo
-from utils import create_unique_id, create_software_id, create_system_id
-from content_creator import create_flat_content_tag, create_hierarchic_content_tag
+from ..signature_template import SIGNATURE
+from ..package_info import PackageInfo
+from ..utils import create_unique_id, create_software_id, create_system_id
+from ..content_creator import create_flat_content_tag, create_hierarchic_content_tag
 import re
 
 ROLE = 'tagCreator'

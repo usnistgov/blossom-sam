@@ -22,16 +22,16 @@ def inputInstall(distro, architecture, software, version, baseURL, token):
     manifest = install(software + '.zip')
 
     # Generate the swid tag
-    swid_tag = generateSwidXML(manifest['software'], manifest['version'])
+    # swid_tag = generateSwidXML(manifest['software'], manifest['version'])
     
     # Submit the swid tag to the web service
-    submit_tag(distro, architecture, software, version, baseURL, token, swid_tag)
+    # submit_tag(distro, architecture, software, version, baseURL, token, swid_tag)
 
     # Check if software needs key
     if manifest['needsKey']:
 
         # Install the key for the software 
-        install_key(distro, architecture, software, version, dest, baseURL, token)
+        install_key(distro, architecture, software, version, manifest['keyInstall'], baseURL, token)
         
 # Function for installing software from zip file
 def install(fileName):

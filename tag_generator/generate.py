@@ -5,8 +5,8 @@
 # Tag Generating code partially sourced from https://github.com/strongswan/swidGenerator
 
 # Import neccessary functions, many from strongswan's swidGenerator
-from generators.swid_generator import create_software_identity_element
-from package_info import PackageInfo
+from .generators.swid_generator import create_software_identity_element
+from .package_info import PackageInfo
 from xml.etree import ElementTree as ET
 import sys, platform
 
