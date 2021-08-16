@@ -3,6 +3,7 @@
 # importing required modules
 from unzipper import unzip
 from zipfile import ZipFile
+from tag_generator.generate import generateSwidXML
 import tempfile
 import sys
 import yaml
@@ -11,6 +12,27 @@ import grp
 import os
 import requests
 
+# Function for carrying out complete installation from user input
+def inputInstall(distro, architecture, software, version, baseURL, token):
+
+    # Download the zip fril from the web service
+    download_software(distro, architecture, software, version, baseURL, token)
+
+    # Install the software from downloaded zip file
+    manifest = install(software + '.zip')
+
+    # Generate the swid tag
+    swid_tag = generateSwidXML(manifest['software'], manifest['version'])
+    
+    # Submit the swid tag to the web service
+    submit_tag(distro, architecture, software, version, baseURL, token, swid_tag)
+
+    # Check if software needs key
+    if manifest['needsKey']:
+
+        # Install the key for the software 
+        install_key(distro, architecture, software, version, dest, baseURL, token)
+        
 # Function for installing software from zip file
 def install(fileName):
 
@@ -63,6 +85,7 @@ def install(fileName):
                 # Update the permissions of the file
                 os.chmod(path, asset['permissions'])
 
+            return manifest
     
 # Function for installing a key
 def install_key(distro, architecture, software, version, dest, baseURL, token):
