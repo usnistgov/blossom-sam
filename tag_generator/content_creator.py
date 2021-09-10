@@ -5,7 +5,7 @@ from __future__ import print_function, division, absolute_import, unicode_litera
 import os.path
 import ntpath
 
-from utils import create_sha256_hash, create_sha384_hash, create_sha512_hash
+from .utils import create_sha256_hash, create_sha384_hash, create_sha512_hash
 from itertools import groupby
 from xml.etree import ElementTree as ET
 
