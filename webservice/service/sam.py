@@ -29,6 +29,11 @@ try:
 except:
     from db_model import *
 
+try:
+    from service.blossom import *
+except:
+    from blossom import *
+
 def add_admin(username, password):
     added = False
     hash = base64.b64encode(bcrypt.generate_password_hash(password))
