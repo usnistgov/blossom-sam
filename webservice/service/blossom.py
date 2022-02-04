@@ -4,8 +4,8 @@ import json
 from hfc.fabric import Client
 
 # Setup fabric connection.
-eventloop = asyncio.get_event_loop()
-fabric_cli = Client(net_profile=os.environ['SAM_FABRIC_PROFILE'])
+loop = asyncio.get_event_loop()
+cli = Client(net_profile=os.environ['SAM_FABRIC_PROFILE'])
 fabric_user = cli.get_user(os.environ['SAM_FABRIC_ORG'], os.environ['SAM_FABRIC_USER'])
 cli.new_channel(os.environ['SAM_FABRIC_CHANNEL'])
 
@@ -27,7 +27,7 @@ def ReportSwID(primary_tag: str, asset_id: str, license: str, tag: str):
         args=None,
         cc_name=os.environ['SAM_CHAINCODE_NAME'],
         fcn='ReportSwID',
-        waitForEvent=True,
+        wait_for_event=True,
         transient_map=args
     ))
 
@@ -41,7 +41,7 @@ def RequestCheckout(asset_id: str, count: int):
         args=None,
         cc_name=os.environ['SAM_CHAINCODE_NAME'],
         fcn='RequestCheckout',
-        waitForEvent=True,
+        wait_for_event=True,
         transient_map=args
     ))
 
@@ -55,7 +55,7 @@ def GetLicenses(asset_id: str):
         args=args,
         cc_name=os.environ['SAM_CHAINCODE_NAME'],
         fcn='Licenses',
-        waitForEvent=True
+        wait_for_event=True
     ))
 
 def Checkin(asset_id: str, licenses: list):
@@ -69,7 +69,7 @@ def Checkin(asset_id: str, licenses: list):
         args=None,
         cc_name=os.environ['SAM_CHAINCODE_NAME'],
         fcn='InitiateCheckin',
-        waitForEvent=True,
+        wait_for_event=True,
         transient_map=realargs
     ))
 
@@ -81,7 +81,7 @@ def GetAssets():
         args=[],
         cc_name=os.environ['SAM_CHAINCODE_NAME'],
         fcn='Assets',
-        waitForEvent=True
+        wait_for_event=True
     ))
 
 def GetAssetInfo(asset_id: str):
@@ -92,5 +92,5 @@ def GetAssetInfo(asset_id: str):
         args=[ asset_id ],
         cc_name=os.environ['SAM_CHAINCODE_NAME'],
         fcn='AssetInfo',
-        waitForEvent=True
+        wait_for_event=True
     ))
