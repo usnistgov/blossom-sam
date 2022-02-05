@@ -8,7 +8,7 @@ import (
     "bufio"
     "io"
 
-	"github.com/hyperledger/fabric-sdk-go/pkg/gateway"
+    "github.com/hyperledger/fabric-sdk-go/pkg/gateway"
     "github.com/hyperledger/fabric-sdk-go/pkg/core/config"
     "github.com/hyperledger/fabric-sdk-go/pkg/common/logging"
 )
