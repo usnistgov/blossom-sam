@@ -1,13 +1,57 @@
 import os
-import asyncio
+import sys
 import json
-from hfc.fabric import Client
+from subprocess import Popen, PIPE, TimeoutExpired
 
-# Setup fabric connection.
-loop = asyncio.get_event_loop()
-cli = Client(net_profile=os.environ['SAM_FABRIC_PROFILE'])
-fabric_user = cli.get_user(os.environ['SAM_FABRIC_ORG'], os.environ['SAM_FABRIC_USER'])
-cli.new_channel(os.environ['SAM_FABRIC_CHANNEL'])
+# Timeout in seconds from the time we send our data to the helper to when we
+# give up on getting a response.
+BLOCKCHAIN_TIMEOUT=10
+
+# Absolute path to the golang helper program.
+BLOSSOM_HELPER_PATH = '/opt/blossom/bin/blossom-helper'
+
+# Returns None on error, the returned data from the blockchain on success.
+def _call_helper(call_info: dict):
+    data = json.dumps(call_info).encode('utf-8')
+    print('Sending transaction to blockchain...\n')
+
+    with Popen(BLOSSOM_HELPER_PATH, stdin=PIPE, stdout=PIPE, stderr=PIPE) as p:
+        try:
+            out, err = p.communicate(data, BLOCKCHAIN_TIMEOUT)
+        except TimeoutExpired:
+            p.kill()
+            out, err = p.communicate()
+            print('Timeout communicating with helper...\n', file=sys.stderr)
+            return None
+
+        if p.returncode != 0:
+            print('Blockchain returned error code %d...\n' % p.returncode,
+                  file=sys.stderr)
+            print('stdout: ' + out.decode('utf-8') + '\n', file=sys.stderr)
+            print('stderr: ' + err.decode('utf-8') + '\n', file=sys.stderr)
+            return None
+
+    return out.decode('utf-8')
+
+def _tx_create(func: str, args: list, transient: dict) -> dict:
+    tx = {
+        'identity': {
+            'cert': os.environ('SAM_FABRIC_CERT'),
+            'key': os.environ('SAM_FABRIC_KEY'),
+            'msp': os.environ('SAM_FABRIC_ORG')
+        },
+        'profile': os.environ('SAM_FABRIC_PROFILE'),
+        'channel': os.environ('SAM_FABRIC_CHANNEL'),
+        'contract': os.environ('SAM_CHAINCODE_NAME'),
+        'endorser': os.environ('SAM_FABRIC_PEER'),
+        'function': func,
+        'args': args,
+    }
+
+    if transient is not None:
+        tx['transient'] = transient
+
+    return tx
 
 # Stubs for chaincode functions in blossom...
 def ReportSwID(primary_tag: str, asset_id: str, license: str, tag: str):
@@ -19,78 +63,29 @@ def ReportSwID(primary_tag: str, asset_id: str, license: str, tag: str):
         'xml': tag
     }
     args = { 'swid': json.dumps(obj) }
-
-    return loop.run_until_complete(cli.chaincode_invoke(
-        requestor=fabric_user,
-        channel_name=os.environ['SAM_FABRIC_CHANNEL'],
-        peers=[os.environ['SAM_FABRIC_PEER']],
-        args=None,
-        cc_name=os.environ['SAM_CHAINCODE_NAME'],
-        fcn='ReportSwID',
-        wait_for_event=True,
-        transient_map=args
-    ))
+    tx = _tx_create('ReportSwID', [], args)
+    return _call_helper(tx)
 
 def RequestCheckout(asset_id: str, count: int):
     args = { 'checkout': json.dumps({ 'asset_id': asset_id, 'amount': count }) }
-
-    return loop.run_until_complete(cli.chaincode_invoke(
-        requestor=fabric_user,
-        channel_name=os.environ['SAM_FABRIC_CHANNEL'],
-        peers=[os.environ['SAM_FABRIC_PEER']],
-        args=None,
-        cc_name=os.environ['SAM_CHAINCODE_NAME'],
-        fcn='RequestCheckout',
-        wait_for_event=True,
-        transient_map=args
-    ))
+    tx = _tx_create('RequestCheckout', [], args)
+    return _call_helper(tx)
 
 def GetLicenses(asset_id: str):
     args = [ os.environ['SAM_FABRIC_USER'], asset_id ]
-
-    return loop.run_until_complete(cli.chaincode_invoke(
-        requestor=fabric_user,
-        channel_name=os.environ['SAM_FABRIC_CHANNEL'],
-        peers=[os.environ['SAM_FABRIC_PEER']],
-        args=args,
-        cc_name=os.environ['SAM_CHAINCODE_NAME'],
-        fcn='Licenses',
-        wait_for_event=True
-    ))
+    tx = _tx_create('Licenses', args, None)
+    return _call_helper(tx)
 
 def Checkin(asset_id: str, licenses: list):
     args = { 'asset_id': asset_id, 'licenses': licenses }
     realargs = { 'checkin': json.dumps(args) }
-
-    return loop.run_until_complete(cli.chaincode_invoke(
-        requestor=fabric_user,
-        channel_name=os.environ['SAM_FABRIC_CHANNEL'],
-        peers=[os.environ['SAM_FABRIC_PEER']],
-        args=None,
-        cc_name=os.environ['SAM_CHAINCODE_NAME'],
-        fcn='InitiateCheckin',
-        wait_for_event=True,
-        transient_map=realargs
-    ))
+    tx = _tx_create('InitiateCheckin', [], realargs)
+    return _call_helper(tx)
 
 def GetAssets():
-    return loop.run_until_complete(cli.chaincode_invoke(
-        requestor=fabric_user,
-        channel_name=os.environ['SAM_FABRIC_CHANNEL'],
-        peers=[os.environ['SAM_FABRIC_PEER']],
-        args=[],
-        cc_name=os.environ['SAM_CHAINCODE_NAME'],
-        fcn='Assets',
-        wait_for_event=True
-    ))
+    tx = _tx_create('Assets', [], None)
+    return _call_helper(tx)
 
 def GetAssetInfo(asset_id: str):
-    return loop.run_until_complete(cli.chaincode_invoke(
-        requestor=fabric_user,
-        channel_name=os.environ['SAM_FABRIC_CHANNEL'],
-        peers=[os.environ['SAM_FABRIC_PEER']],
-        args=[ asset_id ],
-        cc_name=os.environ['SAM_CHAINCODE_NAME'],
-        fcn='AssetInfo',
-        wait_for_event=True
-    ))
+    tx = _tx_create('AssetInfo', [ asset_id ], None)
+    return _call_helper(tx)
