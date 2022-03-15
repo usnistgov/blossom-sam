@@ -36,14 +36,14 @@ def _call_helper(call_info: dict):
 def _tx_create(func: str, args: list, transient: dict) -> dict:
     tx = {
         'identity': {
-            'cert': os.environ('SAM_FABRIC_CERT'),
-            'key': os.environ('SAM_FABRIC_KEY'),
-            'msp': os.environ('SAM_FABRIC_ORG')
+            'cert': os.environ['SAM_FABRIC_CERT'],
+            'key': os.environ['SAM_FABRIC_KEY'],
+            'msp': os.environ['SAM_FABRIC_ORG']
         },
-        'profile': os.environ('SAM_FABRIC_PROFILE'),
-        'channel': os.environ('SAM_FABRIC_CHANNEL'),
-        'contract': os.environ('SAM_CHAINCODE_NAME'),
-        'endorser': os.environ('SAM_FABRIC_PEER'),
+        'profile': os.environ['SAM_FABRIC_PROFILE'],
+        'channel': os.environ['SAM_FABRIC_CHANNEL'],
+        'contract': os.environ['SAM_CHAINCODE_NAME'],
+        'endorser': os.environ['SAM_FABRIC_PEER'],
         'function': func,
         'args': args,
     }
