@@ -41,6 +41,7 @@ class Application(db.Model):
     version = db.Column(db.String, nullable=False)
     arch = db.Column(db.String, nullable=False)
     os = db.Column(db.String, nullable=False)
+    blossom_id = db.Column(db.String, nullable=False)
 
     keys = db.relationship('Key', lazy='selectin',
                            backref=db.backref('application', lazy='selectin'),
@@ -55,6 +56,9 @@ class Key(db.Model):
     app_id = db.Column(db.Integer, db.ForeignKey('application.app_id'),
                        nullable=False)
     data = db.Column(db.Binary, nullable=False)
+    expiration = db.Column(db.String, nullable=False)
+    lease_date = db.Column(db.String, nullable=True)
+
     leased_to = db.Column(db.Integer, db.ForeignKey('system.system_id'),
                           nullable=True)
 
@@ -64,4 +68,5 @@ class SwidTag(db.Model):
                        nullable=False)
     system_id = db.Column(db.Integer, db.ForeignKey('system.system_id'),
                           nullable=False)
+    key_id = db.Column(db.Integer, db.ForeignKey('key.key_id'), nullable=False)
     swid_tag = db.Column(db.String, nullable=False)

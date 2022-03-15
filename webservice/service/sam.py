@@ -65,7 +65,7 @@ def add_system(name, token):
 
 @app.route('/')
 def endpoint_root():
-    return Response('BLoSS@M SAM Service Running...', mimetype='text/plain')
+    return Response('BLoSS@M SAM Service Running...\n', mimetype='text/plain')
 
 @app.route('/installer')
 def endpoint_getInstaller():
@@ -135,7 +135,7 @@ def endpoint_key(os, arch, name, ver):
     for k in a[0].keys:
         if k.leased_to is None:
             try:
-                k.system = sys[0]
+                k.leased_to = sys[0]
                 db.session.commit()
                 leased = True
                 break
@@ -146,7 +146,8 @@ def endpoint_key(os, arch, name, ver):
         return Response('No keys available!\n', mimetype='text/plain'), 402
 
     # Send the key out
-    resp = Response(k.data, mimetype='application/octet-stream')
+    resp = Response(base64.b64decode(k.data),
+                    mimetype='application/octet-stream')
     resp.headers.set('Content-Disposition', 'attachment; filename=' +
                      name + '-' + ver + '.key')
     return resp, 200
@@ -213,9 +214,76 @@ def endpoint_addSoftware():
         ver = json_data['version']
         arch = json_data['arch']
         os = json_data['os']
+        blossom_id = json_data['blossom_asset']
 
-        newapp = Application(name=name, version=ver, arch=arch, os=os)
+        newapp = Application(name=name, version=ver, arch=arch, os=os,
+                             blossom_id=blossom_id)
         db.session.add(newapp)
+        db.session.commit()
+        return Response('', mimetype='text/plain'), 201
+    except:
+        db.session.rollback()
+        return Response('', mimetype='text/plain'), 500
+
+@app.route('/admin/reqKeys/<string:os>/<string:arch>/<string:name>/<string:ver>',
+           methods=['POST'])
+def endpoint_reqKey(os, arch, name, ver):
+    auth = request.authorization
+    if not auth:
+        return Response('', mimetype='text/plain'), 401
+
+    users = Admin.query.filter_by(username=auth.username).all()
+    if not users or len(users) != 1:
+        return Response('', mimetype='text/plain'), 401
+
+    if not bcrypt.check_password_hash(base64.b64decode(users[0].passwd), auth.password):
+        return Response('', mimetype='text/plain'), 401
+
+    json_data = request.get_json()
+    if not json_data:
+        return Response('', mimetype='text/plain'), 400
+
+    ap = Application.query.filter_by(name=name, version=ver, arch=arch,
+                                     os=os).all()
+    if not ap or len(ap) != 1:
+        return Response('', mimetype='text/plain'), 404
+
+    try:
+        count = int(json_data['count'])
+
+        if count < 1:
+            return Response('', mimetype='text/plain'), 400
+
+        RequestCheckout(ap.blossom_id, count)
+        return Response('', mimetype='text/plain'), 201
+    except:
+        return Response('', mimetype='text/plain'), 500
+
+@app.route('/admin/getKeys/<string:os>/<string:arch>/<string:name>/<string:ver>')
+def endpoint_getKey(os, arch, name, ver):
+    auth = request.authorization
+    if not auth:
+        return Response('', mimetype='text/plain'), 401
+
+    users = Admin.query.filter_by(username=auth.username).all()
+    if not users or len(users) != 1:
+        return Response('', mimetype='text/plain'), 401
+
+    if not bcrypt.check_password_hash(base64.b64decode(users[0].passwd), auth.password):
+        return Response('', mimetype='text/plain'), 401
+
+    ap = Application.query.filter_by(name=name, version=ver, arch=arch,
+                                     os=os).all()
+    if not ap or len(ap) != 1:
+        return Response('', mimetype='text/plain'), 404
+
+    try:
+        licenses = json.loads(GetLicenses(ap.blossom_id))
+
+        for l in licenses:
+            newkey = Key(application=ap[0], data=l['LicenseID'],
+                         expiration=l['Expiration'])
+            db.session.add(newkey)
         db.session.commit()
         return Response('', mimetype='text/plain'), 201
     except:
@@ -246,8 +314,8 @@ def endpoint_addKey(os, arch, name, ver):
         return Response('', mimetype='text/plain'), 404
 
     try:
-        kdata = base64.urlsafe_b64decode(json_data['key'])
-        newkey = Key(application=ap[0], data=kdata)
+        newkey = Key(application=ap[0], data=json_data['key'],
+                     expiration='Never')
         db.session.add(newkey)
         db.session.commit()
         return Response('', mimetype='text/plain'), 201
