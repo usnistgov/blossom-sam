@@ -1,50 +1,25 @@
 import os
 import sys
 import json
-from subprocess import Popen, PIPE, TimeoutExpired
+import requests
 
-# Timeout in seconds from the time we send our data to the helper to when we
-# give up on getting a response.
-BLOCKCHAIN_TIMEOUT=10
-
-# Absolute path to the golang helper program.
-BLOSSOM_HELPER_PATH = '/opt/blossom/bin/blossom-helper'
+BLOCKCHAIN_HELPER_ADDR = 'http://localhost:8080/'
 
 # Returns None on error, the returned data from the blockchain on success.
 def _call_helper(call_info: dict):
-    data = json.dumps(call_info).encode('utf-8')
     print('Sending transaction to blockchain...\n')
+    resp = requests.post(BLOCKCHAIN_HELPER_ADDR + "invoke", json=call_info)
 
-    with Popen(BLOSSOM_HELPER_PATH, stdin=PIPE, stdout=PIPE, stderr=PIPE) as p:
-        try:
-            out, err = p.communicate(data, BLOCKCHAIN_TIMEOUT)
-        except TimeoutExpired:
-            p.kill()
-            out, err = p.communicate()
-            print('Timeout communicating with helper...\n', file=sys.stderr)
-            return None
+    if resp.response_code < 200 or resp.response_code >= 300:
+        print('Blockchain helper returned error code ' + str(resp.response_code))
+        return None
 
-        if p.returncode != 0:
-            print('Blockchain returned error code %d...\n' % p.returncode,
-                  file=sys.stderr)
-            print('stdout: ' + out.decode('utf-8') + '\n', file=sys.stderr)
-            print('stderr: ' + err.decode('utf-8') + '\n', file=sys.stderr)
-            return None
-
-    return out.decode('utf-8')
+    return resp.text
 
 def _tx_create(func: str, args: list, transient: dict) -> dict:
     tx = {
-        'identity': {
-            'cert': os.environ['SAM_FABRIC_CERT'],
-            'key': os.environ['SAM_FABRIC_KEY'],
-            'msp': os.environ['SAM_FABRIC_ORG']
-        },
-        'profile': os.environ['SAM_FABRIC_PROFILE'],
-        'channel': os.environ['SAM_FABRIC_CHANNEL'],
-        'contract': os.environ['SAM_CHAINCODE_NAME'],
-        'endorser': os.environ['SAM_FABRIC_PEER'],
-        'function': func,
+        'identity': os.environ['SAM_FABRIC_IDENTITY'],
+        'name': func,
         'args': args,
     }
 
