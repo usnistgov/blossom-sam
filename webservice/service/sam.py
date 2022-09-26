@@ -14,6 +14,8 @@ from pathlib import Path
 import base64
 import traceback
 
+import blossom
+
 app = Flask(__name__)
 
 # TODO: Move this to a configuration file later.
@@ -75,6 +77,27 @@ def endpoint_getInstaller():
 
     return send_file(p, mimetype='application/zip', as_attachment=True,
                      etag=True)
+
+@app.route('/assets')
+def endpoint_assets():
+    return Response(str(blossom.GetAssets())), 200
+
+@app.route('/onboard')
+def endpoint_onboardtest():
+    tmp = { 'license_id': 'abcdef', 'expiration': '9/25/2023' }
+    tmp2 = { 'license_id': 'ghijkl', 'expiration': '9/25/2023' }
+    r = blossom.OnboardAsset('asset-0001', 'Hello Washington', '9/25/2022', '9/25/2023', [ tmp, tmp2 ])
+    return Response(str(r)), 200
+
+@app.route('/getcheckouts')
+def endpoint_getcheckouts():
+    r = blossom.GetCheckouts(os.environ['SAM_FABRIC_USER'])
+    return Response(str(r)), 200
+
+@app.route('/reqcheckout')
+def endpoint_req_checkout():
+    r = blossom.RequestCheckout('asset-0001', 1)
+    return Response(str(r)), 200
 
 @app.route('/installer/<string:os>/<string:arch>/<string:name>/<string:ver>')
 def endpoint_inst(os, arch, name, ver):
@@ -344,4 +367,4 @@ def endpoint_addKey(os, arch, name, ver):
 # If the script is being run directly, set up our server.                      #
 ################################################################################
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080, debug=True, use_evalex=False)
+    app.run(host='0.0.0.0', port=8081, debug=True, use_evalex=False)
