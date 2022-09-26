@@ -8,10 +8,10 @@ BLOCKCHAIN_HELPER_ADDR = 'http://localhost:8080/'
 # Returns None on error, the returned data from the blockchain on success.
 def _call_helper(call_info: dict):
     print('Sending transaction to blockchain...\n')
-    resp = requests.post(BLOCKCHAIN_HELPER_ADDR + "invoke", json=call_info)
+    resp = requests.post(BLOCKCHAIN_HELPER_ADDR + "transaction/invoke", json=call_info)
 
-    if resp.response_code < 200 or resp.response_code >= 300:
-        print('Blockchain helper returned error code ' + str(resp.response_code))
+    if resp.status_code < 200 or resp.status_code >= 300:
+        print('Blockchain helper returned error code ' + str(resp.status_code))
         return None
 
     return resp.text
@@ -31,7 +31,6 @@ def _tx_create(func: str, args: list, transient: dict) -> dict:
 # Stubs for chaincode functions in blossom...
 def ReportSwID(primary_tag: str, asset_id: str, license: str, tag: str):
     obj = {
-        'account': os.environ['SAM_FABRIC_USER'],
         'primary_tag': primary_tag,
         'asset': asset_id,
         'license': license,
@@ -48,7 +47,7 @@ def RequestCheckout(asset_id: str, count: int):
 
 def GetLicenses(asset_id: str):
     args = [ os.environ['SAM_FABRIC_USER'], asset_id ]
-    tx = _tx_create('Licenses', args, None)
+    tx = _tx_create('GetLicenses', args, None)
     return _call_helper(tx)
 
 def Checkin(asset_id: str, licenses: list):
@@ -58,9 +57,19 @@ def Checkin(asset_id: str, licenses: list):
     return _call_helper(tx)
 
 def GetAssets():
-    tx = _tx_create('Assets', [], None)
+    tx = _tx_create('GetAssets', [], None)
     return _call_helper(tx)
 
 def GetAssetInfo(asset_id: str):
-    tx = _tx_create('AssetInfo', [ asset_id ], None)
+    tx = _tx_create('GetAsset', [ asset_id ], None)
+    return _call_helper(tx)
+
+def OnboardAsset(asset_id: str, name: str, date: str, exp: str, licenses: list):
+    args = { 'licenses': licenses }
+    realargs = { 'asset': json.dumps(args) }
+    tx = _tx_create('OnboardAsset', [ asset_id, name, date, exp ], realargs)
+    return _call_helper(tx)
+
+def GetCheckouts(account: str):
+    tx = _tx_create('GetCheckoutRequests', account, None)
     return _call_helper(tx)
