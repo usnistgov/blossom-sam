@@ -1,0 +1,16 @@
+{
+  "identity": {
+    "cert": "/path/to/cert.pem",
+    "key": "/path/to/key.pem",
+    "msp": "A1MSP"
+  },
+  "profile": "/path/to/connectionProfile.yaml",
+  "channel": "ChannelName",
+  "contract": "blossom",
+  "endorser": "A1Endorser",
+  "function": "RequestCheckout",
+  "args": [ ],
+  "transient": {
+    "checkout": "{\"asset_id\":\"101\",\"amount\":2}"
+  }
+}

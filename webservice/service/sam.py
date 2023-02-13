@@ -14,6 +14,8 @@ from pathlib import Path
 import base64
 import traceback
 
+import blossom
+
 app = Flask(__name__)
 
 # TODO: Move this to a configuration file later.
@@ -28,6 +30,11 @@ try:
     from service.db_model import *
 except:
     from db_model import *
+
+try:
+    from service.blossom import *
+except:
+    from blossom import *
 
 def add_admin(username, password):
     added = False
@@ -60,7 +67,7 @@ def add_system(name, token):
 
 @app.route('/')
 def endpoint_root():
-    return Response('BLoSS@M SAM Service Running...', mimetype='text/plain')
+    return Response('BLoSS@M SAM Service Running...\n', mimetype='text/plain')
 
 @app.route('/installer')
 def endpoint_getInstaller():
@@ -70,6 +77,27 @@ def endpoint_getInstaller():
 
     return send_file(p, mimetype='application/zip', as_attachment=True,
                      etag=True)
+
+@app.route('/assets')
+def endpoint_assets():
+    return Response(str(blossom.GetAssets())), 200
+
+@app.route('/onboard')
+def endpoint_onboardtest():
+    tmp = { 'license_id': 'abcdef', 'expiration': '9/25/2023' }
+    tmp2 = { 'license_id': 'ghijkl', 'expiration': '9/25/2023' }
+    r = blossom.OnboardAsset('asset-0001', 'Hello Washington', '9/25/2022', '9/25/2023', [ tmp, tmp2 ])
+    return Response(str(r)), 200
+
+@app.route('/getcheckouts')
+def endpoint_getcheckouts():
+    r = blossom.GetCheckouts(os.environ['SAM_FABRIC_USER'])
+    return Response(str(r)), 200
+
+@app.route('/reqcheckout')
+def endpoint_req_checkout():
+    r = blossom.RequestCheckout('asset-0001', 1)
+    return Response(str(r)), 200
 
 @app.route('/installer/<string:os>/<string:arch>/<string:name>/<string:ver>')
 def endpoint_inst(os, arch, name, ver):
@@ -130,7 +158,7 @@ def endpoint_key(os, arch, name, ver):
     for k in a[0].keys:
         if k.leased_to is None:
             try:
-                k.system = sys[0]
+                k.leased_to = sys[0]
                 db.session.commit()
                 leased = True
                 break
@@ -141,7 +169,8 @@ def endpoint_key(os, arch, name, ver):
         return Response('No keys available!\n', mimetype='text/plain'), 402
 
     # Send the key out
-    resp = Response(k.data, mimetype='application/octet-stream')
+    resp = Response(base64.b64decode(k.data),
+                    mimetype='application/octet-stream')
     resp.headers.set('Content-Disposition', 'attachment; filename=' +
                      name + '-' + ver + '.key')
     return resp, 200
@@ -171,20 +200,35 @@ def endpoint_swid(os, arch, name, ver):
 
     swid_tag_decoded = base64.urlsafe_b64decode(swid_tag)
 
+    key = request.form.get('LICENSE')
+    if not key:
+        return Response('Bad Request\n', mimetype='text/plain'), 400
+
+    key_decoded = base64.urlsafe_b64decode(key)
+
     # Make sure we know about this application
     a = Application.query.filter_by(os=os, arch=arch, name=name, version=ver).all()
     if not a or len(a) != 1:
         return Response('Application not found!\n', mimetype='text/plain'), 404
+
+    # And the specified key
+    k = Key.query.filter_by(data=key_decoded, leased_to=sys[0].system_id).all()
+    if not k or len(k) != 1:
+        return Response('Key not found or not licensed!\n',
+                        mimetype='text/plain'), 404
 
     # Add the new tag to the db.
     try:
         newtag = SwidTag(application=a[0], system=sys[0], swid_tag=swid_tag)
         db.session.add(newtag)
         db.session.commit()
+        ReportSwID('swid-' + a[0].blossom_id, a[0].blossom_id,
+                   key_decoded, swid_tag_decoded)
+        return Response('Tag Added\n', mimetype='text/plain'), 201
     except:
+        traceback.print_exc()
         return Response('System Error\n', mimetype='text/plain'), 500
 
-    return Response('Tag Added\n', mimetype='text/plain'), 201
 
 @app.route('/admin/addSoftware', methods=['POST'])
 def endpoint_addSoftware():
@@ -208,13 +252,82 @@ def endpoint_addSoftware():
         ver = json_data['version']
         arch = json_data['arch']
         os = json_data['os']
+        blossom_id = json_data['blossom_asset']
 
-        newapp = Application(name=name, version=ver, arch=arch, os=os)
+        newapp = Application(name=name, version=ver, arch=arch, os=os,
+                             blossom_id=blossom_id)
         db.session.add(newapp)
         db.session.commit()
         return Response('', mimetype='text/plain'), 201
     except:
         db.session.rollback()
+        return Response('', mimetype='text/plain'), 500
+
+@app.route('/admin/reqKeys/<string:os>/<string:arch>/<string:name>/<string:ver>',
+           methods=['POST'])
+def endpoint_reqKey(os, arch, name, ver):
+    auth = request.authorization
+    if not auth:
+        return Response('', mimetype='text/plain'), 401
+
+    users = Admin.query.filter_by(username=auth.username).all()
+    if not users or len(users) != 1:
+        return Response('', mimetype='text/plain'), 401
+
+    if not bcrypt.check_password_hash(base64.b64decode(users[0].passwd), auth.password):
+        return Response('', mimetype='text/plain'), 401
+
+    json_data = request.get_json()
+    if not json_data:
+        return Response('', mimetype='text/plain'), 400
+
+    ap = Application.query.filter_by(name=name, version=ver, arch=arch,
+                                     os=os).all()
+    if not ap or len(ap) != 1:
+        return Response('', mimetype='text/plain'), 404
+
+    try:
+        count = int(json_data['count'])
+
+        if count < 1:
+            return Response('', mimetype='text/plain'), 400
+
+        RequestCheckout(ap[0].blossom_id, count)
+        return Response('', mimetype='text/plain'), 201
+    except:
+        traceback.print_exc()
+        return Response('', mimetype='text/plain'), 500
+
+@app.route('/admin/getKeys/<string:os>/<string:arch>/<string:name>/<string:ver>')
+def endpoint_getKey(os, arch, name, ver):
+    auth = request.authorization
+    if not auth:
+        return Response('', mimetype='text/plain'), 401
+
+    users = Admin.query.filter_by(username=auth.username).all()
+    if not users or len(users) != 1:
+        return Response('', mimetype='text/plain'), 401
+
+    if not bcrypt.check_password_hash(base64.b64decode(users[0].passwd), auth.password):
+        return Response('', mimetype='text/plain'), 401
+
+    ap = Application.query.filter_by(name=name, version=ver, arch=arch,
+                                     os=os).all()
+    if not ap or len(ap) != 1:
+        return Response('', mimetype='text/plain'), 404
+
+    try:
+        licenses = json.loads(GetLicenses(ap[0].blossom_id))
+
+        for l in licenses:
+            newkey = Key(application=ap[0], data=l['LicenseID'],
+                         expiration=l['Expiration'])
+            db.session.add(newkey)
+        db.session.commit()
+        return Response('', mimetype='text/plain'), 201
+    except:
+        db.session.rollback()
+        traceback.print_exc()
         return Response('', mimetype='text/plain'), 500
 
 @app.route('/admin/addKey/<string:os>/<string:arch>/<string:name>/<string:ver>',
@@ -241,8 +354,8 @@ def endpoint_addKey(os, arch, name, ver):
         return Response('', mimetype='text/plain'), 404
 
     try:
-        kdata = base64.urlsafe_b64decode(json_data['key'])
-        newkey = Key(application=ap[0], data=kdata)
+        newkey = Key(application=ap[0], data=json_data['key'],
+                     expiration='Never')
         db.session.add(newkey)
         db.session.commit()
         return Response('', mimetype='text/plain'), 201
@@ -254,4 +367,4 @@ def endpoint_addKey(os, arch, name, ver):
 # If the script is being run directly, set up our server.                      #
 ################################################################################
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080, debug=True, use_evalex=False)
+    app.run(host='0.0.0.0', port=8081, debug=True, use_evalex=False)
