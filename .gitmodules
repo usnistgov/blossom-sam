@@ -1,0 +1,3 @@
+[submodule "blossom-dashboard"]
+	path = blossom-dashboard
+	url = https://github.com/usnistgov/blossom-dashboard
